@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Emergency System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+body {
+    font-family: Inter, Arial, sans-serif;
+    background: radial-gradient(circle at top, rgba(248, 113, 113, 0.12), transparent 35%),
+                linear-gradient(180deg, #020617 0%, #081021 100%);
+    color: #e2e8f0;
+    text-align: center;
+    margin: 0;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 24px 40px;
+}
+
+.page-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    letter-spacing: 0.12em;
+}
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    max-width: 720px;
+    line-height: 1.6;
+}
+
+.card {
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+    padding: 24px;
+    backdrop-filter: blur(18px);
+}
+
+.card-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 16px;
+}
+
+input {
+    width: 100%;
+    padding: 14px 16px;
+    margin: 10px 0;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 1);
+    color: #f8fafc;
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.control-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.panic {
+    background: #dc2626;
+    color: white;
+}
+
+.stop {
+    background: #10b981;
+    color: white;
+}
+
+.circle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid rgba(248, 113, 113, 0.28);
+    box-shadow: 0 0 80px rgba(248, 113, 115, 0.15);
+    transition: transform 0.2s ease;
+}
+
+.menu-bar {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.menu-button {
+    background: rgba(148, 163, 184, 0.08);
+    color: #cbd5e1;
+    min-width: 160px;
+    padding: 14px 26px;
+    border-radius: 9999px;
+    transition: transform 0.24s ease, background-color 0.24s ease, box-shadow 0.24s ease;
+    border: 1px solid transparent;
+}
+
+.menu-button:hover {
+    transform: translateY(-2px);
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.menu-button.active {
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(249, 115, 22, 0.15));
+    color: #f8fafc;
+    box-shadow: 0 18px 40px rgba(248, 113, 113, 0.18);
+    border-color: rgba(248, 113, 113, 0.18);
+}
+
+.section {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    display: none;
+}
+
+.section.active {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.dashboard-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.card {
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    padding: 24px;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(248, 113, 113, 0.16);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecaca;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.control-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+    border: 1px solid rgba(248, 113, 113, 0.14);
+    padding: 32px 26px;
+    border-radius: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+}
+
+.circle {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid rgba(248, 113, 113, 0.28);
+    box-shadow: 0 0 80px rgba(248, 113, 113, 0.15);
+    transition: transform 0.2s ease;
+}
+
+.circle:hover {
+    transform: scale(1.03);
+}
+
+.control-status {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    color: #cbd5e1;
+}
+
+.control-status div {
+    font-size: 0.92rem;
+}
+
+.status-value {
+    display: block;
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.contact-row,
+.telemetry-item,
+.contacts-placeholder {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 18px;
+    padding: 16px 18px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.contact-name {
+    font-weight: 700;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge.online {
+    background: #134e4a;
+    color: #a7f3d0;
+}
+
+.badge.offline {
+    background: #31181f;
+    color: #fecaca;
+}
+
+.telemetry-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.log {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    border-radius: 24px;
+    min-height: 260px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 22px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    text-align: left;
+}
+
+#map {
+    width: 100%;
+    height: 420px;
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.add-contact-card {
+    padding: 24px;
+}
+
+.top-title {
+    margin: 18px 0 0;
+    font-size: 1rem;
+    color: #94a3b8;
+    letter-spacing: 0.28em;
+}
+
+@media (max-width: 980px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+hr {
+    border: none;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.12);
+    margin: 32px 0;
+}
+</style>
+</head>
+
+<body>
+
+<h2 class="top-title">🚨 SafeAlert</h2>
+
+<!-- LOGIN -->
+<div class="container" id="authBox">
+
+<h3>Login / Signup</h3>
+
+<input id="name" placeholder="Name (signup only)">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="signup()">Signup</button>
+<button onclick="login()">Login</button>
+
+</div>
+
+<!-- DASHBOARD -->
+<div class="container" id="appBox" style="display:none;">
+
+<div class="page-header">
+    <h1>Emergency System</h1>
+    <p class="subtitle">Smooth live response dashboard for tracking and alerts</p>
+</div>
+
+<div class="menu-bar">
+    <button id="menuDashboard" data-page="dashboard" class="menu-button active" onclick="showPage('dashboard')">Dashboard</button>
+    <button id="menuAdd" data-page="addContact" class="menu-button" onclick="showPage('addContact')">Add Contact</button>
+    <button id="menuContacts" data-page="contacts" class="menu-button" onclick="showPage('contacts')">Emergency Contacts</button>
+</div>
+
+<div class="section active" id="dashboardPage">
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-title">Live Map</div>
+            <div id="map"></div>
+        </div>
+
+        <div class="dashboard-right">
+            <div class="card control-card">
+                <div id="statusBadge" class="status-pill">TRACKING INACTIVE</div>
+                <div class="control-buttons">
+    <button id="panicButton" class="panic circle" onclick="startPanicWithDelay('button')">PANIC</button>
+
+    <button id="cancelButton" class="stop circle" onclick="cancelPanic()" style="display:none;">
+        CANCEL
+    </button>
+
+    <button id="stopButton" class="stop circle" onclick="stopTracking()" style="display:none;">
+        STOP
+    </button>
+</div>
+                <div class="control-status">
+                    <div>
+                        <span>Lat</span>
+                        <span class="status-value" id="coordLat">--</span>
+                    </div>
+                    <div>
+                        <span>Long</span>
+                        <span class="status-value" id="coordLng">--</span>
+                    </div>
+                    <div>
+                        <span>Updated</span>
+                        <span class="status-value" id="lastUpdated">N/A</span>
+                    </div>
+                    <div>
+                        <span>Location</span>
+                        <span class="status-value" id="currentLocation">N/A</span>
+                    </div>
+                    <div>
+                        <span>Status</span>
+                        <span class="status-value" id="trackingStatus">Idle</span>
+                    </div>
+                    <div>
+                        <span>Signal</span>
+                        <span class="status-value" id="signalStrength">—</span>
+                    </div>
+                </div>
+                <div id="countdownInfo" class="status-value" style="margin-top: 18px; color: #f8fafc; font-size: 0.95rem;">Login to enable automatic voice listening. Say "SOS" or "help" to trigger panic.</div>
+            </div>
+
+            <div class="card logs-panel">
+                <div class="card-title">Session Stream • Live</div>
+                <div class="log" id="logs"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section" id="addContactPage">
+    <div class="card add-contact-card">
+        <div class="card-title">Add Contact</div>
+        <input id="cname" placeholder="Name">
+        <input id="cphone" placeholder="Phone">
+        <input id="cemail" placeholder="Email">
+        <button onclick="addContact()">Add Contact</button>
+    </div>
+</div>
+
+<div class="section" id="contactsPage">
+    <div class="card">
+        <div class="card-title">Emergency Contacts</div>
+        <div id="emergencyContactsList"></div>
+    </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+let stompClient;
+let interval = null;
+let trackingActive = false;
+let lastLocation = null;
+let panicZones = [];
+let proximityAlerted = new Set();
+let proximityWatchId = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let monitoringStream = null;
+let recognition = null;
+let audioContext = null;
+let analyserNode = null;
+let recognitionActive = false;
+let soundDetectionThreshold = 0.22;
+
+// Timer and cooldown management
+let panicTimer = null;
+let panicDelay = 7000; // 7 seconds (adjust if needed)
+let panicPending = false;
+
+// AUDIO
+let panicCooldown = false;
+let panicWordCount = 0;
+let lastTriggerTime = 0;
+
+// Sound effect (optional)
+let siren = new Audio("11325622-police-siren-sound-effect-240674.mp3");
+siren.loop = true;
+
+// ---------- LOG ----------
+function log(msg) {
+    const box = document.getElementById("logs");
+    box.innerHTML += "<div>" + msg + "</div>";
+    box.scrollTop = box.scrollHeight;
+}
+
+// ---------- UI UPDATE ----------
+function updateStatus(msg) {
+    const el = document.getElementById("status");
+    if (el) el.innerText = msg;
+}
+
+// ---------- SWITCH UI ----------
+function showApp() {
+    document.getElementById("authBox").style.display = "none";
+    document.getElementById("appBox").style.display = "block";
+    showPage('dashboard');
+    loadPanicZones();
+    startProximityWatch();  
+    startShakeDetection();
+}
+
+function setActiveMenu(page) {
+    const buttons = document.querySelectorAll('.menu-button');
+    buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+}
+
+function showPage(page) {
+    const pages = ['dashboard', 'addContact', 'contacts'];
+    pages.forEach(name => {
+        const el = document.getElementById(name + 'Page');
+        if (el) {
+            el.classList.toggle('active', name === page);
+        }
+    });
+    setActiveMenu(page);
+
+    if (page === 'contacts') {
+        loadEmergencyContacts();
+    }
+}
+
+// cancel
+function cancelPanic() {
+    if (!panicPending) return;
+
+    clearInterval(panicTimer);
+    panicPending = false;
+
+    log('🛑 Panic cancelled by user.');
+
+    const info = document.getElementById('countdownInfo');
+    if (info) {
+        info.innerText = '✅ Panic cancelled. System safe.';
+    }
+
+    // UI reset
+    document.getElementById('cancelButton').style.display = 'none';
+    document.getElementById('panicButton').style.display = 'inline-flex';
+}
+
+// Panic cooldown management
+function startPanicWithDelay(source = "unknown") {
+    if (trackingActive) return;
+
+    // if already pending, restart timer (important for voice)
+    if (panicPending) {
+        clearInterval(panicTimer);
+        log('🔄 Panic timer restarted via ' + source);
+    }
+
+    panicPending = true;
+
+    panicPending = true;
+
+    // ✅ UI SWITCH
+    document.getElementById('panicButton').style.display = 'none';
+    document.getElementById('cancelButton').style.display = 'inline-flex';
+
+    log(`⏳ Panic requested via ${source}. Waiting ${panicDelay/1000}s for cancel...`);
+
+    const info = document.getElementById('countdownInfo');
+    let secondsLeft = panicDelay / 1000;
+
+    panicTimer = setInterval(() => {
+        secondsLeft--;
+
+        if (info) {
+            info.innerText = `⚠️ Panic in ${secondsLeft}s... (press CANCEL)`;
+        }
+
+        if (secondsLeft <= 0) {
+            clearInterval(panicTimer);
+            panicPending = false;
+
+            // hide cancel, show stop
+            document.getElementById('cancelButton').style.display = 'none';
+
+            log('🚨 Panic confirmed. Starting emergency.');
+            startTracking();
+        }
+    }, 1000);
+}
+
+function startAudioRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        log('⚠️ Audio recording is not supported in this browser.');
+        return;
+    }
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        return;
+    }
+
+    const streamPromise = monitoringStream ? Promise.resolve(monitoringStream) : navigator.mediaDevices.getUserMedia({ audio: true });
+
+    streamPromise
+        .then(stream => {
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            const shouldStopStream = stream !== monitoringStream;
+
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                saveAudioFile();
+                if (shouldStopStream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            };
+
+            mediaRecorder.start();
+            log('🎙️ Audio recording started');
+        })
+        .catch(error => {
+            log('❌ Audio permission denied or unavailable: ' + error.message);
+        });
+}
+
+function stopAudioRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+}
+
+function saveAudioFile() {
+    if (!audioChunks || audioChunks.length === 0) {
+        log('⚠️ No audio captured to save.');
+        return;
+    }
+
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'panic-audio-' + new Date().toISOString().replace(/[:.]/g, '-') + '.webm';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    log('✅ Panic audio file saved to device');
+    audioChunks = [];
+}
+
+function startVoiceMonitoring() {
+    if (recognitionActive) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        log('⚠️ Microphone unavailable. Voice monitoring disabled.');
+        return;
+    }
+
+    recognitionActive = true;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            monitoringStream = stream;
+            initializeSpeechRecognition();
+            startSoundLevelWatch(stream);
+            log('🎤 Voice monitoring enabled. Say "help me", "SOS", or "bachao" to trigger panic.');
+            const info = document.getElementById('countdownInfo');
+            if (info) {
+                info.innerText = '🎤 Voice monitoring active. Say "help me", "SOS", or "bachao" to trigger panic.';
+            }
+        })
+        .catch(error => {
+            recognitionActive = false;
+            log('❌ Microphone permission denied or unavailable: ' + error.message);
+        });
+}
+
+function initializeSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        log('⚠️ Speech recognition not supported. Using loud sound detection only.');
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+
+    recognition.onresult = event => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+        const text = transcript.trim();
+        if (text) {
+            processSpeechResult(text);
+        }
+    };
+
+    recognition.onerror = event => {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            log('❌ Speech recognition permission denied.');
+            recognitionActive = false;
+        } else {
+            log('⚠️ Speech recognition error: ' + event.error);
+        }
+    };
+
+    recognition.onend = () => {
+    if (!recognitionActive) return;
+
+    setTimeout(() => {
+        try {
+            recognition.start();
+        } catch (e) {
+            log('⚠️ Restart failed, retrying...');
+        }
+    }, 500);
+};
+
+    recognition.start();
+    log('🗣️ Speech recognition started.');
+}
+
+function processSpeechResult(text) {
+    const normalized = text.toLowerCase();
+
+if (detectPanicPhrase(normalized)) {
+    panicWordCount++;
+
+    log('⚠️ Panic word detected (' + panicWordCount + '/2)');
+
+    if (panicWordCount >= 2) {
+        triggerVoicePanic();   // 👈 NEW FUNCTION
+        panicWordCount = 0;
+    }
+} else {
+    panicWordCount = 0;
+}
+
+log('🗣️ Heard: ' + text);
+}
+
+function detectPanicPhrase(text) {
+    return /\b(sos|save me|bachao|emergency|i am in danger)\b/.test(text);
+}
+
+function startSoundLevelWatch(stream) {
+    if (!window.AudioContext && !window.webkitAudioContext) return;
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 256;
+    source.connect(analyserNode);
+
+    const dataArray = new Uint8Array(analyserNode.fftSize);
+    const checkLevel = () => {
+        if (!recognitionActive || !analyserNode) return;
+        analyserNode.getByteTimeDomainData(dataArray);
+        const volume = getAverageVolume(dataArray) / 128 - 1;
+        if (volume > soundDetectionThreshold) {
+    log('🔊 Loud sound detected (monitoring)');
+}
+        requestAnimationFrame(checkLevel);
+    };
+
+    requestAnimationFrame(checkLevel);
+}
+
+function getAverageVolume(dataArray) {
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+        sum += Math.abs(dataArray[i] - 128);
+    }
+    return sum / dataArray.length;
+}
+
+function autoTriggerPanic() {
+    if (trackingActive) return;
+    log('🚨 Voice-triggered emergency activated');
+    startTracking();
+}
+
+function triggerVoicePanic() {
+    const now = Date.now();
+
+    if (panicCooldown || (now - lastTriggerTime < 10000)) {
+        log('⏳ Panic blocked (cooldown active)');
+        return;
+    }
+
+    panicCooldown = true;
+    lastTriggerTime = now;
+
+    log('🚨 Voice-triggered emergency activated');
+
+    // ✅ CALL EXISTING FLOW (no change)
+    startPanicWithDelay('voice');
+
+    // ✅ OPTIONAL: backend explicit call
+    fetch('/api/emergency/panic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: "Voice SOS Triggered" })
+    });
+
+    setTimeout(() => {
+        panicCooldown = false;
+    }, 15000);
+}
+
+function stopVoiceMonitoring() {
+    recognitionActive = false;
+    if (recognition) {
+        recognition.onend = null;
+        recognition.stop();
+        recognition = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+    if (monitoringStream) {
+        monitoringStream.getTracks().forEach(track => track.stop());
+        monitoringStream = null;
+    }
+    analyserNode = null;
+}
+
+function loadEmergencyContacts() {
+    const userId = localStorage.getItem('userId');
+    const container = document.getElementById('emergencyContactsList');
+    if (!container) return;
+    container.innerHTML = '<div class="contacts-placeholder">Loading contacts...</div>';
+
+    fetch('/api/contacts/' + userId)
+        .then(res => res.json())
+        .then(contacts => {
+            if (!contacts || contacts.length === 0) {
+                container.innerHTML = '<div class="contacts-placeholder">No emergency contacts saved.</div>';
+                return;
+            }
+            container.innerHTML = contacts.map(contact => `
+                <div class="contact-row">
+                    <div>
+                        <div class="contact-name">${contact.name || 'Unknown'}</div>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:6px;">${contact.phone || 'No phone'} · ${contact.email || 'No email'}</div>
+                    </div>
+                    <span class="badge online">Saved</span>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="contacts-placeholder">Unable to load contacts.</div>';
+        });
+}
+
+/* ---------- SIGNUP (UNCHANGED) ---------- */
+function signup() { 
+    fetch("/api/auth/signup", { 
+        method: "POST", 
+        headers: {"Content-Type": "application/json"}, 
+        body: JSON.stringify({ 
+            name: document.getElementById("name").value, 
+            email: document.getElementById("email").value, 
+            password: document.getElementById("password").value
+         })
+        }) 
+        .then(res => res.text()) 
+        .then(data => alert(data)); }
+/* ---------- LOGIN (UNCHANGED) ---------- */
+function login() { 
+    fetch("/api/auth/login", { 
+        method: "POST", 
+        headers: {"Content-Type": "application/json"}, 
+        body: JSON.stringify({ 
+            email: document.getElementById("email").value, 
+            password: document.getElementById("password").value 
+        }) 
+    }) 
+    .then(res => res.json()) 
+    .then(data => { 
+        if (data && data.status === "success") { 
+            localStorage.setItem("userId", data.userId); 
+            showApp();
+            initMap();
+            connect(); 
+        } else { 
+            alert(data?.message || "Invalid login"); 
+        } 
+    })
+    .catch(() => {
+        alert("Invalid login");
+    });
+}
+/* ---------- ADD CONTACT (UNCHANGED) ---------- */
+function addContact() { 
+    const userId = localStorage.getItem("userId"); 
+    fetch("/api/contacts/" + userId, { 
+        method: "POST", 
+        headers: {"Content-Type": "application/json"}, 
+        body: JSON.stringify({ 
+            name: document.getElementById("cname").value, 
+            phone: document.getElementById("cphone").value, 
+            email: document.getElementById("cemail").value 
+        }) 
+    }) 
+    .then(res => res.text()) 
+    .then(data => log(data)); 
+}
+
+function loadPanicZones() {
+    fetch('/api/emergency/panics')
+        .then(res => res.json())
+        .then(data => {
+            panicZones = Array.isArray(data) ? data : [];
+            log('📍 Loaded ' + panicZones.length + ' panic zones');
+            drawPanicZones();
+        })
+        .catch(err => {
+            console.log('Unable to load panic zones', err);
+        });
+}
+
+function startProximityWatch() {
+    if (!navigator.geolocation) {
+        log('⚠️ Proximity watch unavailable in this browser.');
+        return;
+    }
+    if (proximityWatchId !== null) return;
+
+    proximityWatchId = navigator.geolocation.watchPosition(pos => {
+        const location = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+        };
+        checkProximityAlerts(location);
+    }, err => {
+        log('⚠️ Proximity watch failed: ' + err.message);
+    }, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+    });
+}
+
+function checkProximityAlerts(location) {
+    if (!panicZones || panicZones.length === 0) return;
+    const lat = Number(location.latitude);
+    const lng = Number(location.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+    panicZones.forEach(zone => {
+        const distance = getDistanceFromLatLonInKm(lat, lng, Number(zone.latitude), Number(zone.longitude));
+        const thresholdKm = 0.2;
+        if (distance <= thresholdKm && !proximityAlerted.has(zone.id)) {
+            proximityAlerted.add(zone.id);
+            showProximityAlert(zone, distance);
+            setTimeout(() => proximityAlerted.delete(zone.id), 5 * 60 * 1000);
+        }
+    });
+}
+
+function showProximityAlert(zone, distanceKm) {
+    const distanceText = (distanceKm * 1000).toFixed(0);
+    log('🚨 Near saved panic spot: ' + distanceText + 'm away. Stay alert!');
+    alert('Warning: You are near a previously triggered panic location (' + distanceText + ' meters away).');
+}
+
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
+function drawPanicZones() {
+    if (!map || panicZones.length === 0) return;
+    panicZones.forEach(zone => {
+        L.circle([zone.latitude, zone.longitude], {
+            color: 'red',
+            fillColor: '#f87171',
+            fillOpacity: 0.14,
+            radius: 200
+        }).addTo(map);
+    });
+}
+
+let map;
+let marker;
+let trail;
+let trailLatLngs = [];
+
+function initMap() {
+    if (map) return;
+
+    map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    marker = L.marker([20.5937, 78.9629]).addTo(map);
+    trail = L.polyline(trailLatLngs, { color: 'red' }).addTo(map);
+}
+
+function updateMap(location) {
+    if (!map) {
+        initMap();
+    }
+
+    const lat = Number(location.latitude);
+    const lng = Number(location.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        return;
+    }
+
+    const latLng = [lat, lng];
+    trailLatLngs.push(latLng);
+    trail.setLatLngs(trailLatLngs);
+    marker.setLatLng(latLng);
+    map.setView(latLng, 15);
+
+    lastLocation = location;
+    document.getElementById('coordLat').innerText = lat.toFixed(5) + '° N';
+    document.getElementById('coordLng').innerText = lng.toFixed(5) + '° E';
+    document.getElementById('lastUpdated').innerText = new Date().toLocaleTimeString();
+    document.getElementById('currentLocation').innerText = lat.toFixed(6) + ', ' + lng.toFixed(6);
+    document.getElementById('trackingStatus').innerText = 'Tracking';
+    document.getElementById('signalStrength').innerText = '98.4%';
+}
+
+// ---------- WEBSOCKET ----------
+function connect() {
+    const socket = new SockJS('/ws');
+    stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, () => {
+        log("Connected");
+
+        stompClient.subscribe('/topic/location', (msg) => {
+            const location = JSON.parse(msg.body);
+            log("Live: " + location.latitude + ", " + location.longitude);
+            updateMap(location);
+        });
+    });
+}
+
+function triggerEmergencyAlert(location) {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+        log("⚠️ No user logged in. Please login to send alerts.");
+        return;
+    }
+
+    fetch("/api/emergency/trigger/" + userId, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(location)
+    })
+    .then(res => res.text())
+    .then(data => {
+        log("🚨 " + data);
+    })
+    .catch(err => {
+        log("❌ Emergency alert failed: " + err.message);
+    });
+}
+
+function setTrackingState(isTracking) {
+    updateControlButtons(isTracking);
+
+    const badge = document.getElementById('statusBadge');
+    const statusLabel = document.getElementById('trackingStatus');
+    if (!badge || !statusLabel) return;
+
+    badge.innerText = isTracking ? 'TRACKING ACTIVE - EMERGENCY MODE' : 'TRACKING INACTIVE';
+    badge.style.background = isTracking ? 'rgba(16, 185, 129, 0.12)' : 'rgba(248, 113, 113, 0.12)';
+    badge.style.color = isTracking ? '#a7f3d0' : '#fecaca';
+    statusLabel.innerText = isTracking ? 'Active' : 'Idle';
+}
+
+function toggleTracking() {
+    if (trackingActive) {
+        stopTracking();
+    } else {
+        startTracking();
+    }
+}
+
+function updateControlButtons(isTracking) {
+    const start = document.getElementById('panicButton');
+    const stop = document.getElementById('stopButton');
+    const cancel = document.getElementById('cancelButton');
+
+    if (cancel) cancel.style.display = 'none'; // always hide cancel here
+
+    start.style.display = isTracking ? 'none' : 'inline-flex';
+    stop.style.display = isTracking ? 'inline-flex' : 'none';
+}
+
+function startTracking() {
+    if (interval) {
+        log('Already tracking');
+        return;
+    }
+
+    siren.play().catch(err => console.log('Audio blocked:', err));
+    setTrackingState(true);
+    trackingActive = true;
+    startAudioRecording();
+    log('🚨 Emergency alert triggered immediately.');
+
+    if (!navigator.geolocation) {
+        log('⚠️ Geolocation not supported in this browser. Sending alert without exact location.');
+        triggerEmergencyAlert({latitude: 0, longitude: 0});
+        log('🟡 Tracking remains active in emergency mode. Click STOP when ready.');
+
+        interval = setInterval(() => {
+            log('⚠️ Geolocation is unavailable. Unable to update live location.');
+        }, 5000);
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+        const location = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+        };
+
+        checkProximityAlerts(location);
+        triggerEmergencyAlert(location);
+        log('📍 Alert sent at ' + location.latitude.toFixed(5) + ', ' + location.longitude.toFixed(5));
+
+        if (stompClient) {
+            stompClient.send('/app/location', {}, JSON.stringify(location));
+        }
+        updateMap(location);
+    }, err => {
+        log('⚠️ Geolocation denied or unavailable. Alert sent without exact location.');
+        triggerEmergencyAlert({latitude: 0, longitude: 0});
+        log('🟡 Tracking remains active. Click STOP when ready.');
+    });
+
+    interval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const location = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+
+            checkProximityAlerts(location);
+            log('📍 ' + location.latitude.toFixed(5) + ', ' + location.longitude.toFixed(5));
+            if (stompClient) {
+                stompClient.send('/app/location', {}, JSON.stringify(location));
+            }
+            updateMap(location);
+        }, err => {
+            log('⚠️ Unable to update live location: ' + err.message);
+        });
+    }, 5000);
+}
+
+// ---------- STOP ----------
+function stopTracking() {
+    // cancel pending panic
+if (panicPending) {
+    clearInterval(panicTimer);
+    panicPending = false;
+
+    log('🛑 Panic cancelled before activation.');
+
+    const info = document.getElementById('countdownInfo');
+    if (info) {
+        info.innerText = '✅ Panic cancelled. System safe.';
+    }
+
+    return; // IMPORTANT: do not stop tracking if not started
+}
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+    }
+
+    trackingActive = false;
+    stopAudioRecording();
+    siren.pause();
+    siren.currentTime = 0;
+
+    setTrackingState(false);
+    const info = document.getElementById('countdownInfo');
+    if (info) {
+        info.innerText = '🛑 Emergency has been stopped. Ready for next alert.';
+    }
+    log('🛑 Tracking stopped.');
+}
+
+document.addEventListener("click", function initVoice() {
+    if (!recognitionActive) {
+        startVoiceMonitoring();
+        log("🎤 Voice auto-started after user interaction");
+    }
+
+    // remove listener after first click
+    document.removeEventListener("click", initVoice);
+});
+
+// START VOICE MONITORING AS SOON AS PAGE LOADS
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        startVoiceMonitoring();
+    }, 1000); // slight delay for browser readiness
+});
+
+// ---------------- SHAKE DETECTION ----------------
+
+let shakeThreshold = 18; // sensitivity (try 15–25)
+let lastShakeTime = 0;
+let shakeCooldown = 8000; // 8 sec cooldown
+
+function handleShake(event) {
+    const acc = event.accelerationIncludingGravity;
+    if (!acc) return;
+
+    const x = acc.x || 0;
+    const y = acc.y || 0;
+    const z = acc.z || 0;
+
+    const magnitude = Math.sqrt(x*x + y*y + z*z);
+
+    if (magnitude > shakeThreshold) {
+        const now = Date.now();
+
+        // prevent repeated triggers
+        if (now - lastShakeTime < shakeCooldown) return;
+
+        lastShakeTime = now;
+
+        log('📳 Shake detected! Initiating panic...');
+
+        // use your existing delay system
+        startPanicWithDelay('shake');
+    }
+}
+
+// Enable shake detection (with iOS permission support)
+// -------- ADVANCED SHAKE FILTER (ANTI FALSE TRIGGER) --------
+
+
+let minShakesRequired = 3;        // pattern requirement
+let shakeWindowTime = 1500;       // time window (ms)
+
+
+let shakeEvents = [];
+let lastShakeTriggerTime = 0;
+
+function handleShake(event) {
+    const acc = event.accelerationIncludingGravity;
+    if (!acc) return;
+
+    const x = acc.x || 0;
+    const y = acc.y || 0;
+    const z = acc.z || 0;
+
+    const magnitude = Math.sqrt(x*x + y*y + z*z);
+
+    const now = Date.now();
+
+    // 1️⃣ Basic threshold filter
+    if (magnitude < shakeThreshold) return;
+
+    // 2️⃣ Ignore continuous smooth motion (walking etc.)
+    if (shakeEvents.length > 0 && (now - shakeEvents[shakeEvents.length - 1]) < 120) {
+        return;
+    }
+
+    // 3️⃣ Store shake timestamp
+    shakeEvents.push(now);
+
+    // 4️⃣ Keep only recent shakes inside window
+    shakeEvents = shakeEvents.filter(t => now - t < shakeWindowTime);
+
+    // 5️⃣ Check pattern (intentional shaking)
+    if (shakeEvents.length >= minShakesRequired) {
+
+        // cooldown check
+        if (now - lastShakeTriggerTime < shakeCooldown) return;
+
+        lastShakeTriggerTime = now;
+        shakeEvents = []; // reset pattern
+
+        log('📳 Intentional shake pattern detected!');
+
+        startPanicWithDelay('shake');
+    }
+}
+
+</script>
+
+</body>
+</html>
