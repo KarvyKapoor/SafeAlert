@@ -1,0 +1,31 @@
+{
+  "name": "Emergency System",
+  "short_name": "SafeAlert",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#000",
+  "theme_color": "#dc2626",
+
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "🚨 Quick Panic",
+      "short_name": "Panic",
+      "description": "Trigger emergency instantly",
+      "url": "/?panic=true",
+      "icons": [
+        {
+          "src": "icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

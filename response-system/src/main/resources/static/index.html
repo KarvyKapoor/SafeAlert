@@ -4,8 +4,32 @@
 <meta charset="UTF-8">
 <title>Emergency System</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="manifest" href="manifest.json">
 
 <style>
+#quickPanicBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    border: none;
+    background: #dc2626;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    z-index: 999999;
+    box-shadow: 0 0 25px rgba(248,113,113,0.6);
+    cursor: pointer;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(248,113,113,0.6); }
+    50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(248,113,113,0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(248,113,113,0.6); }
+}
 body {
     font-family: Inter, Arial, sans-serif;
     background: radial-gradient(circle at top, rgba(248, 113, 113, 0.12), transparent 35%),
@@ -621,6 +645,12 @@ function startAudioRecording() {
         });
 }
 
+
+// Register service worker for PWA features
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+}
+
 function stopAudioRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
@@ -745,20 +775,35 @@ function detectPanicPhrase(text) {
 function startSoundLevelWatch(stream) {
     if (!window.AudioContext && !window.webkitAudioContext) return;
 
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // ✅ USE SINGLE CONTEXT
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
     const source = audioContext.createMediaStreamSource(stream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 256;
+
+    // ✅ KEEP-ALIVE NODE (IMPORTANT)
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 0;
+
     source.connect(analyserNode);
+    analyserNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
     const dataArray = new Uint8Array(analyserNode.fftSize);
+
     const checkLevel = () => {
         if (!recognitionActive || !analyserNode) return;
+
         analyserNode.getByteTimeDomainData(dataArray);
         const volume = getAverageVolume(dataArray) / 128 - 1;
+
         if (volume > soundDetectionThreshold) {
-    log('🔊 Loud sound detected (monitoring)');
-}
+            log('🔊 Loud sound detected (background safe)');
+        }
+
         requestAnimationFrame(checkLevel);
     };
 
@@ -1216,7 +1261,9 @@ window.addEventListener('load', () => {
     setTimeout(() => {
         startVoiceMonitoring();
     }, 1000); // slight delay for browser readiness
+
 });
+
 
 // ---------------- SHAKE DETECTION ----------------
 
@@ -1300,8 +1347,81 @@ function handleShake(event) {
         startPanicWithDelay('shake');
     }
 }
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        console.log("Tab is inactive");
+        startBackgroundMode();
+    } else {
+        console.log("Tab is active");
+        stopBackgroundMode();
+    }
+});
+const worker = new Worker("worker.js");
+
+function startBackgroundMode() {
+    worker.postMessage("start");
+}
+
+worker.onmessage = function (e) {
+    console.log("Worker:", e.data);
+    // call your existing detection logic here
+};
+
+audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        audioContext.resume();
+    }
+});
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+function sendAlert() {
+    new Notification("Emergency Detected!", {
+        body: "Sound trigger activated",
+        icon: "icon.png"
+    });
+}
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+        .then(() => console.log("Service Worker Registered"));
+}
+let micStream;
+let source;
+
+async function initMic() {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioContext.createMediaStreamSource(micStream);
+
+    // 👇 KEEP ALIVE NODE (VERY IMPORTANT)
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 0; // silent
+
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    console.log("Mic initialized and kept alive");
+}
+let wakeLock = null;
+
+async function keepScreenAwake() {
+    try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        console.log("Wake lock active");
+    } catch (err) {
+        console.log("Wake lock failed:", err);
+    }
+}
+
+keepScreenAwake();
 
 </script>
-
+<button id="quickPanicBtn" onclick="startPanicWithDelay('quick-widget')">
+    🚨
+</button>
 </body>
 </html>
